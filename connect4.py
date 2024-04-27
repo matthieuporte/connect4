@@ -43,6 +43,9 @@ def drop_piece(board, row, col, piece):
     board[row][col] = piece
 
 
+def cancel_piece(board, row, col):
+    board[row][col] = 0
+
 def is_valid_location(board, col):
     return board[len(board) - 1][col] == 0
 
@@ -70,19 +73,8 @@ def getsign(p):
     return sign
 
 
-def getsign3(p):
-    sign = "  "
-    if p == 2:
-        sign = '\033[93m' + "██" + '\033[0m'
-    elif p == 1:
-        sign = '\033[91m' + "██" + '\033[0m'
-    elif p == 3:
-        sign = '\033[94m' + "██" + '\033[0m'
-    return sign
 
 
-def is_terminal_node(board):
-    return len(get_valid_locations(board)) == 0 or winning_move(board, 1) or winning_move(board, 2)
 
 
 def winning_move(board, player):
@@ -118,101 +110,88 @@ def winning_move(board, player):
     return False
 
 
-def get_input(player, M):
+def get_input(player, board):
     sign = getsign(player)
-    pos = input(sign + ", à vous de jouer : ")
-    while not turn(pos, player, M)[0]:
-        pos = input(sign + ", à vous de jouer : ")
+    pos = input(sign + ", your turn : ")
+    while not turn(pos, player, board)[0]:
+        pos = input(sign + ", your turn : ")
 
 
-def turn(column, player, M):
+def turn(column, player, board):
     """
     returns a tuple, the first value is if the action is valid, the second is whether the player has won
     the column arg is a string and might be wrong, if it is return False
     """
-    nb_cols = len(M[0])
-    nb_rows = len(M)
+    nb_cols = len(board[0])
+    nb_rows = len(board)
     if not column.isdigit() or int(column) > nb_cols or int(column) < 1:
         return (False, False)
     int_col = int(column) - 1
-    if M[nb_rows - 1][int_col] != 0 or player != 1 and player != 2:
+    if board[nb_rows - 1][int_col] != 0 or player != 1 and player != 2:
         return (False, False)
-    drop_piece(M, get_next_open_row(M, int_col), int_col, player)
-    return (True, winning_move(M, player))
+    drop_piece(board, get_next_open_row(board, int_col), int_col, player)
+    return (True, winning_move(board, player))
 
-def play3(w,h):
-    T = init_board(w, h, 0)
-    print()
-    print(" - - - PUISSANCE 4 | 3 Joueurs - - - ")
-    print()
-    playing = 1
-    coup = 0
-    while coup < w * h and not winning_move(T, 1) and not winning_move(T, 2):
-        print_board(T)
-        get_input(playing,T)
-        playing = playing % 3 + 1
-        coup += 1
-    if coup >= w * h:
-        print_board(T)
-        print("égalité !")
-    else:
-        print_board(T)
-        sign = getsign3(playing % 3 + 1)
-        print(sign + " à gagné la partie !")
 
 def play(w, h):
-    T = init_board(w, h, 0)
+    board = init_board(w, h, 0)
     print()
     print(" - - - PUISSANCE 4 - - - ")
     print()
-    print("Joueur 1 " + '\033[91m' + "██" + '\033[0m')
+    print("Player 1 " + '\033[91m' + "██" + '\033[0m')
     diff1 = 1
     diff2 = 1
-    j1 = input("[1]Humain [2]IA :")
-    while not j1.isdigit() or int(j1) > 2 or int(j1) < 1:
-        j1 = input(": ")
-    if j1 == "2":
+    p1 = input("[1]Human [2]Ai :")
+    while not p1.isdigit() or int(p1) > 2 or int(p1) < 1:
+        p1 = input(": ")
+    if p1 == "2":
         diff1 = choose_difficulty()
     print()
-    print("Joueur 2 " + '\033[93m' + "██" + '\033[0m')
-    j2 = input("[1]Humain [2]IA :")
-    while not j2.isdigit() or int(j2) > 2 or int(j2) < 1:
-        j2 = input(": ")
-    if j2 == "2":
+    print("Player 2 " + '\033[93m' + "██" + '\033[0m')
+    p2 = input("[1]Human [2]Ai :")
+    while not p2.isdigit() or int(p2) > 2 or int(p2) < 1:
+        p2 = input(": ")
+    if p2 == "2":
         diff2 = choose_difficulty()
     playing = 1
     coup = 0
-    while coup < w * h and not winning_move(T, 1) and not winning_move(T, 2):
-        print_board(T)
+    while coup < w * h and not winning_move(board, 1) and not winning_move(board, 2):
+        print_board(board)
+        print("p1 heuristic :",heuristic(board,1))
+        start_time = time.time()
         if playing == 1:
-            get_input(1, T) if j1 == "1" else ia_input(1, T, diff1)
+            get_input(1, board) if p1 == "1" else ai_input(1, board, diff1)
         else:
-            get_input(2, T) if j2 == "1" else ia_input(2, T, diff2)
+            get_input(2, board) if p2 == "1" else ai_input(2, board, diff2)
+            
+        end_time = time.time()
+        execution_time = round(end_time - start_time,2)
+
+        print("Time taken:", execution_time, "seconds")
+
         playing = playing % 2 + 1
         coup += 1
     if coup >= w * h:
-        print_board(T)
-        print("égalité !")
+        print_board(board)
+        print("It's a draw !")
     else:
-        print_board(T)
+        print_board(board)
         sign = getsign(playing % 2 + 1)
-        print(sign + " à gagné la partie !")
+        print(sign + " has won the game !")
 
 
 def choose_difficulty():
-    print("1 : IA Débutant")  # 1
-    print("2 : IA Facile")  # 3
-    print("3 : IA Moyenne")  # 5
-    print("4 : IA Difficile")  # 7
-    print("5 : IA Impossible")  # 9
+    print()
+    print("Choose your level of difficulty :")
+    print("1 : Random")
+    print("2 : Greedy")
+    print("3 : Minimax depth 3")
+    print("4 : Minimax depth 6")
     diff = input(": ")
-    while not diff.isdigit() or int(diff) > 5 or int(diff) < 1:
+    while not diff.isdigit() or int(diff) > 4 or int(diff) < 1:
         diff = input(": ")
     diff = int(diff)
-    diff *= 2
-    if diff == 3:
-        diff -= 1
-    return diff - 1 
+    return diff
 
 
 def board_copy(board):
@@ -227,29 +206,28 @@ def board_copy(board):
     return copy
 
 
+
 ### IA FROM NOW ON ###
 
-
-def ia_input(ia, M, depth):
-    col = minmax(M, depth, -math.inf, math.inf, True, ia)[0]
-    time.sleep(0.25)
-    drop_piece(M, get_next_open_row(M, col), col, ia)
-
-
 def local_evaluation(local_row, player):
+    other = player % 2 + 1
     if local_row.count(player) == 4:
-        return 100
+        return 1000
     elif local_row.count(player) == 3 and local_row.count(0) == 1:
         return 5
     elif local_row.count(player) == 2 and local_row.count(0) == 2:
         return 2
-    if local_row.count(player % 2 + 1) == 3 and local_row.count(0) == 1:
-        return 4
+    elif local_row.count(other) == 3 and local_row.count(0) == 1:
+        return -5
+    elif local_row.count(other) == 2 and local_row.count(0) == 2:
+        return -2
+    elif local_row.count(other) == 4:
+        return -1000
+    else:
+        return 0
 
-    return 0
 
-
-def evaluation(board, piece):
+def heuristic(board, player):
     score = 0
     WINDOW_LENGTH = 4
     nb_col = len(board[0])
@@ -259,7 +237,7 @@ def evaluation(board, piece):
     center_array = []
     for i in range(nb_row):
         center_array.append(board[i][nb_col // 2])
-    center_count = center_array.count(piece)
+    center_count = center_array.count(player)
     score += center_count * 3
 
     ## Score Horizontal
@@ -267,7 +245,7 @@ def evaluation(board, piece):
         row_array = board[r].copy()
         for c in range(nb_col - 3):
             window = row_array[c:c + WINDOW_LENGTH]
-            score += local_evaluation(window, piece)
+            score += local_evaluation(window, player)
 
     ## Score Vertical
     for c in range(nb_col):
@@ -276,7 +254,7 @@ def evaluation(board, piece):
             col_array.append(board[i][c])
         for r in range(nb_row - 3):
             window = col_array[r:r + WINDOW_LENGTH]
-            score += local_evaluation(window, piece)
+            score += local_evaluation(window, player)
 
     ## Score positive sloped diagonal
     for r in range(nb_row - 3):
@@ -284,82 +262,95 @@ def evaluation(board, piece):
             window = []
             for i in range(WINDOW_LENGTH):
                 window.append(board[r + i][c + i])
-            score += local_evaluation(window, piece)
+            score += local_evaluation(window, player)
 
+    ## Score negatively sloped diagonal
     for r in range(nb_row - 3):
         for c in range(nb_col - 3):
             window = []
             for i in range(WINDOW_LENGTH):
                 window.append(board[r + 3 - i][c + i])
-            score += local_evaluation(window, piece)
+            score += local_evaluation(window, player)
 
     return score
 
 
-### IA ###
-def minmax(board, depth, alpha, beta, isMaximizing, ia):
-    '''
-    :return: a tuple with the column to play and it's value
-    '''
-    valid_locations = get_valid_locations(board)
-    if len(valid_locations) == 0: # it's a draw :(
-        return None, 0
-    if winning_move(board, ia):
-        return None, 1000000 * depth
-    if winning_move(board, ia % 2 + 1):
-        return None, -13000000 * depth
-    if depth == 0:
-        return None, evaluation(board, ia)
+def ai_input(player,board,diff):
+    col = 0
+    if diff == 1:
+         col = ai_random(player,board)
+    elif diff == 2:
+        col = ai_greedy(player,board)
+    elif diff == 3:
+        col = ai_negamax(board,3,player)
+    elif diff == 4:
+        col = ai_negamax(board,6,player)
+    else:
+        raise Exception("Unknown ia")
+    drop_piece(board, get_next_open_row(board, col), col, player)
+    return (True, winning_move(board, player))
+
+def ai_random(player,board):
+    l = get_valid_locations(board)
+    n = len(l)
+    return l[random.randint(0, n-1)]
+
+def ai_greedy(player,board):
+    copy = board_copy(board)
+    l = get_valid_locations(board)
+    n = len(l)
+    best_col = l[0]
+    best_h = -9999
+    # print("greedy analysis")
+    for col in l:
+        row = get_next_open_row(copy,col);
+        drop_piece(copy, row, col,player)
+        h = heuristic(copy,player)
+        # print("col",col,"=",h)
+        if h > best_h:
+            best_h = h
+            best_col = col
+        cancel_piece(copy,row,col)
+
+    return best_col
+
+def is_terminal(board,h):
+    return len(get_valid_locations(board)) == 0 or abs(h) > 900
+
+def generate_childs(board,player):
+    l = []
+    v = get_valid_locations(board)
+    for col in v:
+        copy = board_copy(board)
+        drop_piece(copy, get_next_open_row(copy, col), col, player)
+        l.append((copy,col))
+    return l
+
+def ai_negamax(board,depth,player):
+    other = player % 2 + 1
+    max_score = -9999
+    col = -1
+    for child in generate_childs(board,player):
+        score = -_negamax(child[0],depth-1,other,-99999,99999)
+        if score > max_score:
+            max_score = score
+            col = child[1]
+    return col
+
+def _negamax(board,depth,player,alpha,beta): 
+    h = heuristic(board,player)
+    other = player % 2 + 1
+    # check if terminal node
+    if depth == 0 or is_terminal(board,h):
+        return h
     
-    if isMaximizing:
-        value = -math.inf
-        column = random.choice(valid_locations)
-        for col in valid_locations:
-            row = get_next_open_row(board, col)
-            copy_of_the_board = board_copy(board)
-            drop_piece(copy_of_the_board, row, col, ia)
-            new_score = minmax(copy_of_the_board, depth - 1, alpha, beta, False, ia)[1]
-            if new_score > value:
-                value = new_score
-                column = col
-            alpha = max(alpha, value)
-            if alpha >= beta:
-                break
-        return column, value
-
-    else:  # is minimizing
-        value = math.inf
-        column = random.choice(valid_locations)
-        for col in valid_locations:
-            row = get_next_open_row(board, col)
-            copy_of_the_board = board_copy(board)
-            drop_piece(copy_of_the_board, row, col, ia % 2 + 1)
-            new_score = minmax(copy_of_the_board, depth - 1, alpha, beta, True, ia)[1]
-            if new_score < value:
-                value = new_score
-                column = col
-            beta = min(beta, value)
-            if alpha >= beta:
-                break
-        return column, value
+    max_score = -99999
+    for child in generate_childs(board,player):
+        score = -_negamax(child[0],depth-1,other,-beta,-alpha)
+        max_score = max(max_score,score)
+        alpha = max(alpha, score)
+        if alpha >= beta:
+            break 
+    return max_score
 
 
-"""
-1 - get valid locations DONE
-2 - check if it's the end of the board or max depth
-2.1 - to check whether it is the end of the board you need to the function winning_move that tells
-you if someone has one : go over the whole board (again) and check is there is a 4 e connection.
-It is the end of the board if either a player has won OR if the board is full
-3 - if it is the case return the value of the present board
-4 - if it is not then we get real with minmax
-4.1 - set the value to the lowest/highest (depending whether it is the maximising player or not)
-4.2 - for every playable column make a copy, drop a piece and call minmax with this board copied
-4.3 - once the recursion is done we store the value in a variable, if it is bigger/smaller that the value 
-we already had set then we can modify it, and the column as well
-4.4 - we can also do an alpha beta optimisation, beta is set with the minimiser, it starts at +infinity 
-and then is set to the minimal value between the min value found when calling the minimiser and it's value
-The same is done with alpha (except that it starts at -infinity and we take the max)
-Now if at any time alpha>=beta you can stop searching here, the value will not be interesting
-If you want to get a better understanding this website is great :
-https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
-"""
